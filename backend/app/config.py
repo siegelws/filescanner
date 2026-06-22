@@ -26,7 +26,12 @@ class Settings(BaseSettings):
     # Web
     SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
-    ALLOWED_ORIGINS: List[str] = ["http://localhost:3000"]
+    # Comma-separated list of origins (env vars stay strings — keeps deploy simple)
+    ALLOWED_ORIGINS: str = "http://localhost:3000"
+
+    @property
+    def allowed_origins_list(self) -> List[str]:
+        return [o.strip() for o in self.ALLOWED_ORIGINS.split(",") if o.strip()]
 
     # DB / queue
     DATABASE_URL: str
