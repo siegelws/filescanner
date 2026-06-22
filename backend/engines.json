@@ -1,0 +1,74 @@
+{
+  "engines": [
+    {
+      "id": "windows-defender",
+      "name": "Windows Defender",
+      "vendor": "Microsoft",
+      "vm_name": "AV-Defender",
+      "agent_url": "https://10.10.20.11:7443",
+      "platform": "windows",
+      "enabled": true,
+      "scan_timeout_seconds": 180
+    },
+    {
+      "id": "kaspersky",
+      "name": "Kaspersky Endpoint Security",
+      "vendor": "Kaspersky",
+      "vm_name": "AV-Kaspersky",
+      "agent_url": "https://10.10.20.12:7443",
+      "platform": "windows",
+      "enabled": true,
+      "scan_timeout_seconds": 240
+    },
+    {
+      "id": "bitdefender",
+      "name": "BitDefender Endpoint",
+      "vendor": "BitDefender",
+      "vm_name": "AV-BitDefender",
+      "agent_url": "https://10.10.20.13:7443",
+      "platform": "windows",
+      "enabled": true,
+      "scan_timeout_seconds": 240
+    },
+    {
+      "id": "eset",
+      "name": "ESET NOD32",
+      "vendor": "ESET",
+      "vm_name": "AV-ESET",
+      "agent_url": "https://10.10.20.14:7443",
+      "platform": "windows",
+      "enabled": true,
+      "scan_timeout_seconds": 180
+    },
+    {
+      "id": "avast",
+      "name": "Avast Antivirus",
+      "vendor": "Avast",
+      "vm_name": "AV-Avast",
+      "agent_url": "https://10.10.20.15:7443",
+      "platform": "windows",
+      "enabled": true,
+      "scan_timeout_seconds": 180
+    },
+    {
+      "id": "malwarebytes",
+      "name": "Malwarebytes Anti-Malware",
+      "vendor": "Malwarebytes",
+      "vm_name": "AV-Malwarebytes",
+      "agent_url": "https://10.10.20.16:7443",
+      "platform": "windows",
+      "enabled": true,
+      "scan_timeout_seconds": 240
+    },
+    {
+      "id": "sophos",
+      "name": "Sophos Intercept X",
+      "vendor": "Sophos",
+      "vm_name": "AV-Sophos",
+      "agent_url": "https://10.10.20.17:7443",
+      "platform": "windows",
+      "enabled": true,
+      "scan_timeout_seconds": 240
+    }
+  ]
+}
