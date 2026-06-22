@@ -9,7 +9,9 @@ from app.scanners.base import Adapter, ScanOutcome, ScannerError
 # CrowdStrike Falcon / Hybrid Analysis — hash lookup against their sandbox corpus.
 # Free tier needs an API key from https://www.hybrid-analysis.com/apikeys/info
 API_KEY = os.environ.get("HYBRID_ANALYSIS_API_KEY", "")
-BASE = "https://www.hybrid-analysis.com/api/v2"
+# Non-www form — www.hybrid-analysis.com 301s to the apex AND downgrades POST to
+# GET, dropping the form body. Use the canonical host directly.
+BASE = "https://hybrid-analysis.com/api/v2"
 
 
 class HybridAnalysisAdapter(Adapter):
