@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from celery import group
-from sqlalchemy import select, update
+from sqlalchemy import func, select, text, update
 
 from app.config import EngineConfig, get_engines
 from app.database import SyncSessionLocal
@@ -188,22 +188,43 @@ def _publish_result(scan_id: str, engine_result_id: str) -> None:
     publish_event(scan_id, {"type": "result", "result": out})
 
 
+_TERMINAL_STATES = (
+    EngineResultStatus.clean,
+    EngineResultStatus.detected,
+    EngineResultStatus.error,
+    EngineResultStatus.timeout,
+)
+
+
 def _bump_completed(scan_id: str) -> None:
+    """
+    Recompute engines_completed from actual DB state (count of terminal rows).
+    Idempotent — retries and parallel workers can't double-count.
+    """
     with SyncSessionLocal() as db:
         scan = db.get(Scan, scan_id, with_for_update=True)
         if not scan:
             return
-        scan.engines_completed += 1
+        completed = db.execute(
+            select(func.count(EngineResult.id)).where(
+                EngineResult.scan_id == scan.id,
+                EngineResult.status.in_(_TERMINAL_STATES),
+            )
+        ).scalar() or 0
+        scan.engines_completed = int(completed)
         done = scan.engines_completed >= scan.engines_requested
+        completed_n = scan.engines_completed
+        total_n = scan.engines_requested
+        detections_n = scan.detections
         db.commit()
 
     publish_event(
         scan_id,
         {
             "type": "progress",
-            "completed": scan.engines_completed,
-            "total": scan.engines_requested,
-            "detections": scan.detections,
+            "completed": completed_n,
+            "total": total_n,
+            "detections": detections_n,
         },
     )
     if done:
@@ -221,7 +242,10 @@ def _finalize_scan(scan_id: str) -> None:
         snapshot = ScanDetail.model_validate(scan).model_dump(mode="json")
 
     publish_event(scan_id, {"type": "completed", "scan": snapshot})
-    _shred_upload(scan_id)
+    # Note: file shred deferred — slow API engines (VT/MetaDefender/HA) may still
+    # be reading from disk through retries after the scan is logically "completed".
+    # A periodic cleanup task should remove storage/uploads/* older than N hours.
+    # _shred_upload(scan_id)
 
 
 def _shred_upload(scan_id: str) -> None:

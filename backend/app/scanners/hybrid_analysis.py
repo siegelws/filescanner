@@ -24,7 +24,8 @@ class HybridAnalysisAdapter(Adapter):
             "User-Agent": "Falcon Sandbox",  # required by HA
             "accept": "application/json",
         }
-        with httpx.Client(timeout=30) as c:
+        # HA's edge sends 301s to canonical URLs — without follow_redirects we choke.
+        with httpx.Client(timeout=30, follow_redirects=True) as c:
             r = c.post(
                 f"{BASE}/search/hash",
                 headers=headers,
