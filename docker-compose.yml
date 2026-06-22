@@ -1,5 +1,3 @@
-version: "3.9"
-
 # Multi-source file scanner — full stack:
 #   web (Next.js) <-> api (FastAPI) <-> postgres / redis
 #                          \-> worker (Celery) -> { clamav, yara, VT/MD/HA APIs }

@@ -18,6 +18,8 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
-COPY --from=build /app/public ./public
+# public/ may be empty — copy via a wildcard so missing dir doesn't fail the build
+RUN mkdir -p ./public
+COPY --from=build /app/public/. ./public/
 EXPOSE 3000
 CMD ["node", "server.js"]
