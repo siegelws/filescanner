@@ -9,6 +9,7 @@ from typing import Sequence, Union
 import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.dialects.postgresql import ENUM
 
 revision: str = "0001_initial"
 down_revision: Union[str, None] = None
@@ -17,6 +18,19 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    # ENUMs are created explicitly (idempotent), and create_type=False prevents
+    # SQLAlchemy from issuing a second CREATE TYPE when the column references them.
+    scan_status = ENUM(
+        "queued", "running", "completed", "failed",
+        name="scan_status", create_type=False,
+    )
+    engine_status = ENUM(
+        "pending", "running", "clean", "detected", "error", "timeout",
+        name="engine_result_status", create_type=False,
+    )
+    scan_status.create(op.get_bind(), checkfirst=True)
+    engine_status.create(op.get_bind(), checkfirst=True)
+
     op.create_table(
         "users",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -27,9 +41,6 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
     op.create_index("ix_users_email", "users", ["email"], unique=True)
-
-    scan_status = sa.Enum("queued", "running", "completed", "failed", name="scan_status")
-    scan_status.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "scans",
@@ -58,12 +69,6 @@ def upgrade() -> None:
     op.create_index("ix_scans_status", "scans", ["status"])
     op.create_index("ix_scans_created_at", "scans", ["created_at"])
 
-    engine_status = sa.Enum(
-        "pending", "running", "clean", "detected", "error", "timeout",
-        name="engine_result_status",
-    )
-    engine_status.create(op.get_bind(), checkfirst=True)
-
     op.create_table(
         "engine_results",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
@@ -89,12 +94,12 @@ def downgrade() -> None:
     op.drop_index("ix_engine_results_engine_id", table_name="engine_results")
     op.drop_index("ix_engine_results_scan_id", table_name="engine_results")
     op.drop_table("engine_results")
-    op.execute("DROP TYPE engine_result_status")
+    op.execute("DROP TYPE IF EXISTS engine_result_status")
 
     for ix in ("ix_scans_created_at", "ix_scans_status", "ix_scans_sha256", "ix_scans_sha1", "ix_scans_md5", "ix_scans_user_id"):
         op.drop_index(ix, table_name="scans")
     op.drop_table("scans")
-    op.execute("DROP TYPE scan_status")
+    op.execute("DROP TYPE IF EXISTS scan_status")
 
     op.drop_index("ix_users_email", table_name="users")
     op.drop_table("users")
