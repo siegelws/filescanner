@@ -12,6 +12,21 @@ export interface EngineInfo {
   enabled: boolean;
 }
 
+export interface SubEngine {
+  engine: string;
+  category: "malicious" | "suspicious" | "undetected" | "harmless" | "type-unsupported" | "timeout" | "failure" | "unknown" | string;
+  detection: string | null;
+  version: string | null;
+  updated?: string | null;
+  method?: string | null;
+}
+
+export interface SubEngineBreakdown {
+  type: "virustotal" | "metadefender" | string;
+  stats: Record<string, number | string>;
+  engines: SubEngine[];
+}
+
 export interface EngineResult {
   engine_id: string;
   engine_name: string;
@@ -23,6 +38,19 @@ export interface EngineResult {
   duration_ms: number | null;
   error_message: string | null;
   completed_at: string | null;
+  raw_output: string | null;
+}
+
+/** Parse the JSON sub-engine blob if the adapter produced one. */
+export function parseBreakdown(r: EngineResult): SubEngineBreakdown | null {
+  if (!r.raw_output) return null;
+  try {
+    const parsed = JSON.parse(r.raw_output);
+    if (parsed && Array.isArray(parsed.engines)) return parsed as SubEngineBreakdown;
+  } catch {
+    // not JSON — just a plain text raw_output (ClamAV / YARA / etc.)
+  }
+  return null;
 }
 
 export type ScanStatus = "queued" | "running" | "completed" | "failed";

@@ -127,7 +127,7 @@ def run_engine_scan(self, *, scan_id: str, engine_result_id: str, engine_id: str
                 .values(
                     status=status,
                     detection_name=outcome.detection_name if outcome.detected else None,
-                    raw_output=(outcome.raw_output or "")[:8000],
+                    raw_output=(outcome.raw_output or "")[:64000],
                     engine_version=outcome.engine_version,
                     definitions_version=outcome.definitions_version,
                     duration_ms=duration_ms,

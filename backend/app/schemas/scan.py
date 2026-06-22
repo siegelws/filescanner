@@ -25,6 +25,9 @@ class EngineResultOut(BaseModel):
     duration_ms: Optional[int] = None
     error_message: Optional[str] = None
     completed_at: Optional[datetime] = None
+    # JSON blob containing sub-engine breakdowns (VT, MetaDefender etc.).
+    # The frontend parses this when present to render expandable inner tables.
+    raw_output: Optional[str] = None
 
     class Config:
         from_attributes = True
