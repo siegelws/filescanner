@@ -1,34 +1,79 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  html, body { background: #0a0d12; color: #e6edf6; }
-  body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
-  ::selection { background: rgba(34, 211, 238, 0.35); color: #fff; }
+  html, body {
+    background: #fdfaf5;
+    color: #231a12;
+  }
+  body {
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+    background-image:
+      radial-gradient(1100px 600px at 5% -10%, rgba(247, 184, 214, 0.30) 0%, transparent 60%),
+      radial-gradient(900px 500px at 95% 0%, rgba(240, 214, 138, 0.35) 0%, transparent 55%);
+    background-attachment: fixed;
+    background-color: #fdfaf5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { font-family: "Playfair Display", Georgia, serif; letter-spacing: -0.01em; }
+  ::selection { background: rgba(236, 79, 156, 0.30); color: #231a12; }
+
+  /* Refined scrollbars for the sub-engine inner table */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(201, 161, 60, 0.4);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(201, 161, 60, 0.7); }
 }
 
 @layer components {
   .card {
-    @apply bg-bg-surface border border-border rounded-xl;
+    @apply bg-bg-surface border border-border rounded-2xl shadow-soft;
   }
+
   .btn {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border
-           bg-bg-elevated text-text hover:border-border-strong hover:bg-bg-subtle
-           transition-colors text-sm font-medium;
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border
+           bg-white text-text hover:border-accent hover:bg-accent-soft
+           transition-all duration-200 text-sm font-medium;
   }
+
+  /* Primary action — gold gradient, soft glow */
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg
-           bg-accent text-black hover:bg-accent-hover font-semibold
-           transition-colors text-sm shadow-glow;
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-full
+           bg-gold-gradient text-white font-semibold
+           transition-all duration-200 text-sm shadow-gold
+           hover:brightness-110 hover:-translate-y-0.5
+           active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.12);
   }
+
+  /* Secondary highlight — pink */
+  .btn-pink {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-full
+           bg-pink-gradient text-white font-semibold
+           transition-all duration-200 text-sm shadow-pink
+           hover:brightness-110 hover:-translate-y-0.5;
+  }
+
   .input {
-    @apply w-full px-3 py-2 rounded-lg bg-bg-subtle border border-border
+    @apply w-full px-4 py-2.5 rounded-xl bg-white border border-border
            text-text placeholder:text-text-subtle focus:outline-none
-           focus:border-accent focus:ring-2 focus:ring-accent/30 text-sm;
+           focus:border-accent focus:ring-4 focus:ring-accent-soft text-sm transition;
   }
+
   .pill {
     @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full
-           text-xs font-medium border;
+           text-xs font-semibold border;
+  }
+
+  /* Decorative gradient text */
+  .text-lux {
+    @apply bg-clip-text text-transparent bg-lux-gradient;
   }
 }

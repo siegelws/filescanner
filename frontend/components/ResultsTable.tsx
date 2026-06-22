@@ -22,7 +22,7 @@ const STATUS_META: Record<
   { icon: any; label: string; cls: string }
 > = {
   pending:  { icon: Clock,         label: "Queued",   cls: "text-text-subtle" },
-  running:  { icon: Loader2,       label: "Scanning", cls: "text-accent animate-spin" },
+  running:  { icon: Loader2,       label: "Scanning", cls: "text-accent" },
   clean:    { icon: CheckCircle2,  label: "Clean",    cls: "text-success" },
   detected: { icon: XCircle,       label: "Detected", cls: "text-danger" },
   error:    { icon: AlertTriangle, label: "Error",    cls: "text-warn" },
@@ -92,8 +92,8 @@ function EngineRow({ result }: { result: EngineResult }) {
         </td>
         <td className="px-4 py-3">
           <span className={cn("inline-flex items-center gap-1.5", meta.cls)}>
-            <Icon size={14} />
-            <span className="text-xs font-medium">{meta.label}</span>
+            <Icon size={14} className={result.status === "running" ? "animate-spin" : ""} />
+            <span className="text-xs font-semibold">{meta.label}</span>
           </span>
         </td>
         <td className="px-4 py-3 max-w-xs">

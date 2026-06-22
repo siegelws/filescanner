@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, Server, Zap } from "lucide-react";
+import { ShieldCheck, Server, Zap, Sparkles } from "lucide-react";
 import { UploadZone } from "@/components/UploadZone";
 import { EngineSelector } from "@/components/EngineSelector";
 import { api, type EngineInfo } from "@/lib/api";
@@ -44,14 +44,23 @@ export default function HomePage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
-      <div className="text-center mb-10">
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-          Scan with <span className="text-accent">multiple AV engines</span> at once
+    <div className="max-w-4xl mx-auto px-4 py-12">
+      <div className="text-center mb-12">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white border border-border shadow-soft mb-5">
+          <Sparkles className="text-accent" size={14} />
+          <span className="text-xs font-semibold tracking-wide text-text-muted uppercase">
+            Multi-engine malware analysis
+          </span>
+        </div>
+        <h1 className="font-display text-5xl sm:text-6xl font-semibold tracking-tight leading-[1.05]">
+          Scan with <span className="text-lux">85+&nbsp;antivirus engines</span>
+          <br />
+          <span className="text-text-muted text-3xl sm:text-4xl">in a single click.</span>
         </h1>
-        <p className="mt-4 text-text-muted max-w-2xl mx-auto">
-          Upload an executable, script, document or archive. Each engine runs in its own
-          isolated VM — your file is never executed on this server.
+        <p className="mt-5 text-text-muted max-w-2xl mx-auto text-base leading-relaxed">
+          Drag any file in and instantly get verdicts from ClamAV, YARA, plus
+          every major commercial vendor via VirusTotal, MetaDefender and Hybrid
+          Analysis — all from one elegant dashboard.
         </p>
       </div>
 
@@ -69,35 +78,35 @@ export default function HomePage() {
       )}
 
       <div className="mt-6 flex items-center justify-between gap-4">
-        <div className="text-xs text-text-subtle">
+        <div className="text-xs text-text-muted">
           {selected.size === 0
             ? "Select at least one engine"
-            : `Will scan with ${selected.size} engine${selected.size === 1 ? "" : "s"}`}
+            : <>Will scan with <span className="font-semibold text-text">{selected.size}</span> engine{selected.size === 1 ? "" : "s"}</>}
         </div>
         <button
           disabled={!file || selected.size === 0 || submitting}
           onClick={submit}
-          className="btn-primary disabled:opacity-40 disabled:cursor-not-allowed"
+          className="btn-primary"
         >
           <Zap size={16} /> {submitting ? "Uploading…" : "Start scan"}
         </button>
       </div>
 
       {error && (
-        <div className="mt-4 text-danger text-sm bg-danger-soft/40 border border-danger/30 px-3 py-2 rounded-lg">
+        <div className="mt-4 text-danger text-sm bg-danger-soft border border-danger-border px-3 py-2 rounded-xl">
           {error}
         </div>
       )}
 
-      <div className="mt-16 grid sm:grid-cols-3 gap-4">
-        <Feature icon={ShieldCheck} title="Sandbox-only execution">
-          Files are processed in disposable VMs. Snapshots are reverted between scans.
+      <div className="mt-20 grid sm:grid-cols-3 gap-5">
+        <Feature icon={ShieldCheck} title="Container-isolated">
+          Files are scanned in sealed containers and never executed on this host.
         </Feature>
-        <Feature icon={Server} title="Multi-engine parallel">
-          Up to a dozen AV vendors scan your file simultaneously, results streamed live.
+        <Feature icon={Server} title="Parallel multi-engine">
+          Up to ~85 vendor verdicts in seconds. Expand any tile to see receipts.
         </Feature>
         <Feature icon={Zap} title="Real-time results">
-          A WebSocket pushes per-engine verdicts the moment each VM completes.
+          WebSocket pushes per-engine verdicts the moment each one completes.
         </Feature>
       </div>
     </div>
@@ -114,10 +123,12 @@ function Feature({
   children: React.ReactNode;
 }) {
   return (
-    <div className="card p-4">
-      <Icon className="text-accent mb-2" size={20} />
-      <div className="font-medium">{title}</div>
-      <div className="text-sm text-text-muted mt-1">{children}</div>
+    <div className="card p-5 hover:shadow-pop transition-shadow">
+      <div className="w-10 h-10 rounded-full bg-pink-soft flex items-center justify-center mb-3">
+        <Icon className="text-pink-deep" size={18} />
+      </div>
+      <div className="font-display text-lg font-semibold">{title}</div>
+      <div className="text-sm text-text-muted mt-1.5 leading-relaxed">{children}</div>
     </div>
   );
 }

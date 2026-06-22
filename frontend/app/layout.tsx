@@ -10,12 +10,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body className="min-h-screen flex flex-col">
         <Header />
         <main className="flex-1">{children}</main>
         <footer className="border-t border-border py-6 text-center text-xs text-text-subtle">
-          FileScan · isolated VM scanning · all uploads auto-shredded after analysis
+          <span className="text-lux font-semibold tracking-wide">FileScan</span>
+          {" · "}multi-engine analysis · all uploads shredded after scanning
         </footer>
       </body>
     </html>

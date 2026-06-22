@@ -60,52 +60,58 @@ export function UploadZone({ file, onFile, submitting, uploadPct }: Props) {
       <div
         {...getRootProps()}
         className={cn(
-          "card border-2 border-dashed p-10 text-center cursor-pointer transition-all",
+          "relative card border-2 border-dashed p-12 text-center cursor-pointer transition-all overflow-hidden",
           isDragActive
-            ? "border-accent bg-accent/5 shadow-glow"
-            : "border-border hover:border-border-strong",
-          submitting && "pointer-events-none opacity-60"
+            ? "border-accent bg-accent-soft shadow-pop"
+            : "border-border hover:border-accent hover:shadow-pop",
+          submitting && "pointer-events-none opacity-70"
         )}
       >
+        {/* subtle radial glow under drop zone */}
+        <div className="pointer-events-none absolute inset-0 opacity-60"
+             style={{ background: "radial-gradient(500px 200px at 50% -10%, rgba(247,184,214,0.25), transparent 70%)" }} />
         <input {...getInputProps()} />
-        <div className="flex flex-col items-center gap-3">
-          {submitting ? (
-            <Loader2 className="text-accent animate-spin" size={48} />
-          ) : (
-            <UploadCloud className="text-accent" size={48} />
-          )}
+        <div className="relative flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-gold-gradient flex items-center justify-center shadow-gold">
+            {submitting ? (
+              <Loader2 className="text-white animate-spin" size={28} />
+            ) : (
+              <UploadCloud className="text-white" size={28} />
+            )}
+          </div>
           {file ? (
             <div>
-              <div className="font-medium">{file.name}</div>
+              <div className="font-display text-xl">{file.name}</div>
               <div className="text-sm text-text-muted">{formatBytes(file.size)}</div>
               {submitting && uploadPct !== undefined && (
-                <div className="mt-3 w-64 mx-auto">
-                  <div className="h-1.5 bg-bg-elevated rounded-full overflow-hidden">
+                <div className="mt-4 w-72 mx-auto">
+                  <div className="h-2 bg-bg-elevated rounded-full overflow-hidden border border-border">
                     <div
-                      className="h-full bg-accent transition-all"
+                      className="h-full bg-gold-gradient transition-all"
                       style={{ width: `${uploadPct}%` }}
                     />
                   </div>
-                  <div className="text-xs text-text-subtle mt-1">{uploadPct}%</div>
+                  <div className="text-xs text-text-subtle mt-2">{uploadPct}% uploaded</div>
                 </div>
               )}
             </div>
           ) : (
             <>
-              <div className="text-lg font-medium">
-                {isDragActive ? "Drop the file here" : "Drag & drop a file, or click to select"}
+              <div className="font-display text-2xl">
+                {isDragActive ? "Drop the file here" : "Drag & drop your file"}
               </div>
               <div className="text-sm text-text-muted max-w-md">
-                EXE, DLL, SCR, COM, PS1, MSI, scripts, Office docs, archives — up to{" "}
-                {formatBytes(MAX_BYTES)}. Files are quarantined and only executed inside
-                isolated AV VMs.
+                Or click anywhere in this box to select one. EXE, DLL, PS1, MSI,
+                Office docs, PDFs, archives — up to {formatBytes(MAX_BYTES)}.
+                <br />
+                <span className="text-text-subtle">Files are scanned in isolated containers, never executed on this host.</span>
               </div>
             </>
           )}
         </div>
       </div>
       {error && (
-        <div className="mt-3 flex items-center gap-2 text-danger text-sm bg-danger-soft/40 border border-danger/30 px-3 py-2 rounded-lg">
+        <div className="mt-3 flex items-center gap-2 text-danger text-sm bg-danger-soft border border-danger-border px-3 py-2 rounded-xl">
           <FileWarning size={16} /> {error}
         </div>
       )}
