@@ -1,143 +1,132 @@
-# FileScan — Multi-AV malware analysis platform
+# FileScan — Multi-source malware analysis
 
-A self-hosted, Kleenscan / Euroscan-style scanning service. Uploads are sent to
-multiple **isolated VMware virtual machines**, each running a different
-antivirus engine, and the per-engine verdicts are streamed back to the browser
-over WebSocket.
+Self-hosted, Kleenscan/Euroscan-style scanning service. Users upload a file and
+get back per-engine verdicts from **multiple scanners** running in parallel —
+local engines (ClamAV, YARA) and aggregated commercial APIs (VirusTotal,
+MetaDefender, Hybrid Analysis, MalwareBazaar, CIRCL Hashlookup).
 
-> **Files are never executed on the host.** Every scan runs inside a VM that is
-> reverted to a clean snapshot before and (in failure modes) after each scan.
+> Files are streamed to a private quarantine directory, scanned, then shredded
+> after every engine completes. They're never executed on the host.
+
+---
+
+## Live deploy in ~10 minutes (Contabo / Hetzner / DigitalOcean)
+
+You need:
+- A Ubuntu 24.04 server with a public IPv4 (a €4.50/mo Contabo VPS S is plenty)
+- A domain pointing at the server (`A` record → server IP)
+- Free API keys (instant signup):
+  - VirusTotal — https://www.virustotal.com/gui/my-apikey
+  - MetaDefender — https://metadefender.opswat.com/account/api-key
+  - Hybrid Analysis — https://www.hybrid-analysis.com/apikeys/info
+
+Then on the server (as root):
+
+```bash
+git clone https://github.com/siegelws/filescanner.git /opt/filescanner
+cd /opt/filescanner
+cp .env.example .env
+# edit .env — paste the API keys + generate SECRET_KEY with: openssl rand -hex 32
+nano .env
+bash infra/deploy.sh your-domain.com
+```
+
+That one script installs Docker, opens the firewall, fetches a Let's Encrypt
+cert, builds the containers, runs the DB migration, and launches the stack.
+
+When it finishes, open `https://your-domain.com` — drag a file in, watch
+results stream live.
 
 ---
 
 ## Architecture
 
 ```
-Browser ──HTTPS──> Next.js 14 (web)
-                       │
-                       │ REST + WS
-                       ▼
-                   FastAPI (api) ──── PostgreSQL
-                       │
-                       │ enqueue
-                       ▼
-                  Redis (queue + pub/sub)
-                       │
-                       ▼
-                  Celery worker(s)
-                       │  fan-out per engine
-                       ▼
-        VM Orchestrator (vmrun)
-        ├── revert "clean" snapshot
-        ├── power on VM
-        ├── POST file → in-VM HTTPS agent
-        ├── agent runs scan.ps1 → AV CLI
-        ├── agent returns {detected, name, raw, version}
-        └── power off + revert again
+Browser ──HTTPS──> Next.js (web) ──┐
+                                   │ REST + WS
+                                   ▼
+                                FastAPI (api) ──── PostgreSQL
+                                   │
+                                   │ enqueue
+                                   ▼
+                              Redis (queue + pub/sub)
+                                   │
+                                   ▼
+                          Celery worker(s)
+                          │
+        ┌─────────────────┼──────────────────────────────────────┐
+        ▼                 ▼                                      ▼
+    ClamAV daemon     YARA (in-proc)            HTTP API adapters
+    (clamd TCP)       w/ rule packs             VirusTotal · MetaDefender
+                                                Hybrid Analysis · MalwareBazaar
+                                                CIRCL Hashlookup
 ```
 
-| Layer        | Tech                                                              |
-|--------------|-------------------------------------------------------------------|
-| Frontend     | Next.js 14 (App Router), TypeScript, Tailwind, react-dropzone     |
-| Backend      | FastAPI, SQLAlchemy 2 (async), Alembic, Pydantic v2                |
-| Queue        | Celery + Redis                                                    |
-| DB           | PostgreSQL 16                                                     |
-| Realtime     | WebSocket + Redis pub/sub                                         |
-| VM control   | VMware `vmrun` (Workstation/Player/Fusion). Swap for `pyVmomi` on ESXi/vCenter. |
-| In-VM agent  | FastAPI HTTPS endpoint + per-engine PowerShell wrapper            |
+| Layer    | Tech                                                       |
+|----------|------------------------------------------------------------|
+| Frontend | Next.js 14 (App Router), TypeScript, Tailwind, react-dropzone |
+| Backend  | FastAPI, SQLAlchemy 2 (async), Alembic, Pydantic v2        |
+| Queue    | Celery + Redis                                             |
+| DB       | PostgreSQL 16                                              |
+| Realtime | WebSocket + Redis pub/sub                                  |
+| Engines  | ClamAV daemon · YARA · VT/MD/HA/MalwareBazaar/CIRCL APIs   |
+| TLS      | nginx + Let's Encrypt (via `infra/deploy.sh`)              |
 
 ---
 
 ## Folder layout
 
 ```
-file-scanner/
-├── docker-compose.yml         # api + worker + web + redis + postgres
+filescanner/
+├── docker-compose.yml          # web + api + worker + postgres + redis + clamav + nginx
 ├── .env.example
-├── backend/                   # FastAPI app + Celery worker
+├── backend/
 │   ├── app/
-│   │   ├── api/               # scans, auth, engines, ws routers
-│   │   ├── core/              # security (JWT), rate limit
-│   │   ├── models/            # User, Scan, EngineResult
-│   │   ├── schemas/           # Pydantic DTOs
-│   │   ├── services/          # upload, hash, notify (pub/sub)
-│   │   └── workers/           # celery_app, scan_tasks, vm_orchestrator
-│   ├── engines.json           # registry of AV engines (id, vendor, vm, agent URL)
-│   └── alembic/               # database migrations
-├── frontend/                  # Next.js app
-│   ├── app/                   # page.tsx, scan/[id], history, login, register
-│   ├── components/            # UploadZone, EngineSelector, ScanProgress, ResultsTable, ScanSummary
-│   └── lib/                   # api.ts, ws.ts, utils.ts
-├── vm-scripts/                # what runs INSIDE each AV VM
-│   ├── common/agent.py        # shared HTTPS scan agent
-│   └── <engine>/scan.ps1      # per-AV CLI wrapper (Defender/Kaspersky/...)
-├── infra/nginx.conf
-└── storage/                   # bind-mounted upload quarantine
+│   │   ├── api/                # scans, auth, engines, ws routers
+│   │   ├── core/               # JWT, rate limit
+│   │   ├── models/             # User, Scan, EngineResult
+│   │   ├── schemas/            # Pydantic DTOs
+│   │   ├── services/           # upload (quarantine), hash, notify (pub/sub)
+│   │   ├── scanners/           # ONE FILE PER ENGINE
+│   │   │   ├── base.py
+│   │   │   ├── clamav.py            ← INSTREAM over TCP to clamd
+│   │   │   ├── yara_scanner.py      ← compiled rule cache, hot-reload
+│   │   │   ├── virustotal.py        ← hash lookup → upload+poll fallback
+│   │   │   ├── metadefender.py      ← OPSWAT v4 API
+│   │   │   ├── hybrid_analysis.py   ← CrowdStrike Falcon hash search
+│   │   │   ├── malwarebazaar.py     ← abuse.ch (no key, free)
+│   │   │   └── hashlookup.py        ← CIRCL EU CERT (no key, free)
+│   │   └── workers/            # celery_app, scan_tasks (fan-out dispatcher)
+│   ├── rules/                  # YARA rule pack (mounted into worker)
+│   ├── engines.json            # registry — toggle engines without code changes
+│   └── alembic/                # database migrations
+├── frontend/                   # Next.js app
+├── infra/
+│   ├── deploy.sh               # one-shot Ubuntu 24.04 deploy
+│   └── nginx.conf              # TLS termination + WS upgrade
+└── storage/                    # bind-mounted upload quarantine (gitignored)
 ```
 
 ---
 
-## Quick start (host services)
+## Engine list (out of the box)
 
-```bash
-# 1. Configure secrets
-cp .env.example .env
-openssl rand -hex 32   # paste as SECRET_KEY
-openssl rand -hex 32   # paste as VM_AGENT_TOKEN
+| ID                 | What                                  | API key needed?   | Coverage             |
+|--------------------|---------------------------------------|-------------------|----------------------|
+| `clamav`           | ClamAV daemon (in-cluster)            | no                | 1 engine, real-time  |
+| `yara`             | YARA + bundled rule pack              | no                | rule-based heuristic |
+| `virustotal`       | VirusTotal v3                         | yes (free tier OK) | 70+ engines aggregated |
+| `metadefender`     | OPSWAT MetaDefender Cloud             | yes (free tier OK) | ~20 engines aggregated |
+| `hybrid_analysis`  | CrowdStrike Falcon Sandbox            | yes (free tier OK) | sandbox + AV verdicts  |
+| `malwarebazaar`    | abuse.ch hash corpus                  | no                | known-bad lookup     |
+| `hashlookup`       | CIRCL Hashlookup (NSRL/MISP)          | no                | known-good/bad       |
 
-# 2. Bring up postgres + redis + api + worker + web
-docker compose up -d --build
+So one upload yields verdicts from **roughly 90+ engines** when you have the
+three free API keys configured. Without keys you still get ClamAV + YARA +
+MalwareBazaar + Hashlookup — fully usable.
 
-# 3. Run initial migration
-docker compose exec api alembic upgrade head
-
-# 4. Open the app
-open http://localhost:3000
-```
-
-Out of the box you'll see the UI and be able to submit a file — but with no VMs
-configured the per-engine scans will fail with "vmx_path required". Either:
-
-- Provision real AV VMs (see `vm-scripts/README.md`), **or**
-- Run in **mock mode** by setting `SKIP_VM_LIFECYCLE=true` on the worker and
-  pointing each engine's `agent_url` in `backend/engines.json` to a stub that
-  responds to `/scan` (handy for frontend development).
-
----
-
-## Setting up the AV VMs
-
-See [`vm-scripts/README.md`](vm-scripts/README.md) for the full per-engine
-playbook. Summary:
-
-1. Create one VMware VM per AV product (Windows 10/11 LTSC + Python 3.12).
-2. Install the AV product. Disable cloud sample-sharing.
-3. Drop `vm-scripts/common/agent.py` and the engine-specific `scan.ps1` into
-   `C:\agent\` inside the VM.
-4. Set `VM_AGENT_TOKEN` (same value as the host `.env`) + `SCAN_COMMAND`.
-5. Run the agent on port 7443 with a self-signed cert.
-6. Take a snapshot named **`clean`** — that's what the orchestrator reverts to.
-7. On the worker host, export `ENGINES_VMX_<ID>=/path/to/<engine>.vmx`.
-
----
-
-## Security model
-
-- **Files never execute on the host.** They're streamed to `storage/uploads/`,
-  hashed, then sent over HTTPS to in-VM agents. The host worker only `revertToSnapshot`s,
-  `start`s, and `stop`s the VMs.
-- **VM isolation.** VMs sit on a host-only `vmnet` segment with no default route.
-  The "clean" snapshot is taken before any sample ever runs.
-- **Per-VM single-product policy.** One AV per VM eliminates cross-engine
-  interference and keeps detection names verbatim.
-- **Random storage names.** Original filenames are kept only in PostgreSQL; the
-  on-disk name is `secrets.token_hex(16) + ext`, mode `0o600`.
-- **Auto-shred.** When all engines finish, the upload is overwritten and unlinked.
-- **Rate limiting.** SlowAPI on `/api/scans` (10/min/IP) and `/api/auth/*` (5/min).
-- **Auth.** JWT (HS256), bcrypt passwords. Guest scans allowed; the scan ID is
-  the capability — share the URL only with people you'd share the verdict with.
-- **Defence in depth.** Strict CORS, security headers via nginx, all DB access
-  through SQLAlchemy parameterised queries, all file paths sanitised.
+Disable individual engines by editing `backend/engines.json` and restarting the
+worker. No code changes needed.
 
 ---
 
@@ -156,7 +145,21 @@ GET    /api/scans/{id}                                      → ScanDetail
 WS     /api/ws/scans/{id}                                   → stream { snapshot | result | progress | completed }
 ```
 
-OpenAPI docs auto-served at `/api/docs`.
+OpenAPI docs at `/api/docs`.
+
+---
+
+## Security model
+
+- **No execution on the host.** Files are streamed to `storage/uploads/` (mode
+  `0600`, opaque random name), hashed, then either sent to local engines
+  (clamd over TCP, YARA in-proc) or to vendor APIs by hash. Nothing is `exec`'d.
+- **Auto-shred.** When every engine finishes, the upload is overwritten and
+  unlinked.
+- **Rate limiting.** SlowAPI on `/api/scans` (10/min/IP) and `/api/auth/*` (5/min).
+- **Auth.** JWT (HS256), bcrypt passwords. Guest scans allowed; the scan ID is
+  a capability (share the URL only with people you'd share the verdict with).
+- **TLS.** Let's Encrypt + nginx termination; HSTS / X-Frame-Options / etc.
 
 ---
 
@@ -170,7 +173,6 @@ pip install -r requirements.txt
 export DATABASE_URL=postgresql+asyncpg://scanner:scanner_dev_pw@localhost/scanner
 export REDIS_URL=redis://localhost:6379/0
 export SECRET_KEY=$(openssl rand -hex 32)
-export VM_AGENT_TOKEN=$(openssl rand -hex 32)
 alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 # in another shell:
@@ -186,10 +188,18 @@ npm run dev
 
 ---
 
-## Roadmap
+## Costs at a glance
 
-- YARA pre-scan on the host before VM dispatch (very cheap "known bad" tier)
-- Dedup: if SHA256 was scanned in the last N days, surface the cached verdict
-- Per-engine version pinning + automated "definitions freshness" rebuilds
-- Linux engine VMs (ClamAV, Sophos for Linux) on KVM
-- API keys + per-key quotas for programmatic use
+| Item                      | $/mo |
+|---------------------------|------|
+| Contabo VPS S (4 vCPU/8GB) | ~$5 |
+| ClamAV + YARA              | free |
+| VirusTotal free API        | free (500 req/day, 4/min — fine up to ~5k scans/mo if hash hits dominate) |
+| MetaDefender free          | free (modest quota) |
+| Hybrid Analysis free       | free |
+| MalwareBazaar, Hashlookup  | free |
+| **Total to run as-is**     | **~$5/mo** |
+
+For higher volume (5k+ scans/mo) upgrade the VT/MetaDefender tiers — see the
+README at `vm-scripts/README.md` for the old VM-based path if you ever want to
+add real local AV engines as well.

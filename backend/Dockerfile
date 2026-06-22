@@ -6,6 +6,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential libmagic1 curl ca-certificates \
+        automake libtool make gcc pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

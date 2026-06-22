@@ -18,3 +18,4 @@ slowapi==0.1.9
 websockets==13.1
 email-validator==2.2.0
 python-magic==0.4.27
+yara-python==4.5.1

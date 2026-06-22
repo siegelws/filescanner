@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -13,9 +13,9 @@ class EngineConfig(BaseModel):
     id: str
     name: str
     vendor: str
-    vm_name: str
-    agent_url: str
-    platform: str = "windows"
+    vm_name: str = "local"
+    agent_url: str = ""
+    platform: str = "linux"
     enabled: bool = True
     scan_timeout_seconds: int = 180
 
@@ -46,10 +46,7 @@ class Settings(BaseSettings):
         ".zip", ".rar", ".7z", ".tar", ".gz",
     ]
 
-    # VM agents
-    VM_AGENT_TOKEN: str
-    VM_AGENT_VERIFY_TLS: bool = False  # self-signed certs inside the lab
-    VMRUN_PATH: str = "/usr/bin/vmrun"
+    # Engine registry
     ENGINES_CONFIG: str = "/app/engines.json"
 
     # Rate limit (per-IP, per-minute) on /scans upload

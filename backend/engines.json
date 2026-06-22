@@ -1,74 +1,74 @@
 {
   "engines": [
     {
-      "id": "windows-defender",
-      "name": "Windows Defender",
-      "vendor": "Microsoft",
-      "vm_name": "AV-Defender",
-      "agent_url": "https://10.10.20.11:7443",
-      "platform": "windows",
+      "id": "clamav",
+      "name": "ClamAV",
+      "vendor": "Cisco Talos",
+      "vm_name": "local",
+      "agent_url": "tcp://clamav:3310",
+      "platform": "linux",
+      "enabled": true,
+      "scan_timeout_seconds": 120
+    },
+    {
+      "id": "yara",
+      "name": "YARA + Public Rules",
+      "vendor": "VirusTotal / community",
+      "vm_name": "local",
+      "agent_url": "local",
+      "platform": "linux",
+      "enabled": true,
+      "scan_timeout_seconds": 60
+    },
+    {
+      "id": "virustotal",
+      "name": "VirusTotal (70+ engines aggregated)",
+      "vendor": "Google",
+      "vm_name": "api",
+      "agent_url": "https://www.virustotal.com/api/v3",
+      "platform": "api",
       "enabled": true,
       "scan_timeout_seconds": 180
     },
     {
-      "id": "kaspersky",
-      "name": "Kaspersky Endpoint Security",
-      "vendor": "Kaspersky",
-      "vm_name": "AV-Kaspersky",
-      "agent_url": "https://10.10.20.12:7443",
-      "platform": "windows",
+      "id": "metadefender",
+      "name": "MetaDefender Cloud (~20 engines)",
+      "vendor": "OPSWAT",
+      "vm_name": "api",
+      "agent_url": "https://api.metadefender.com/v4",
+      "platform": "api",
       "enabled": true,
       "scan_timeout_seconds": 240
     },
     {
-      "id": "bitdefender",
-      "name": "BitDefender Endpoint",
-      "vendor": "BitDefender",
-      "vm_name": "AV-BitDefender",
-      "agent_url": "https://10.10.20.13:7443",
-      "platform": "windows",
+      "id": "hybrid_analysis",
+      "name": "Hybrid Analysis (Falcon Sandbox)",
+      "vendor": "CrowdStrike",
+      "vm_name": "api",
+      "agent_url": "https://www.hybrid-analysis.com/api/v2",
+      "platform": "api",
       "enabled": true,
-      "scan_timeout_seconds": 240
+      "scan_timeout_seconds": 90
     },
     {
-      "id": "eset",
-      "name": "ESET NOD32",
-      "vendor": "ESET",
-      "vm_name": "AV-ESET",
-      "agent_url": "https://10.10.20.14:7443",
-      "platform": "windows",
+      "id": "malwarebazaar",
+      "name": "MalwareBazaar",
+      "vendor": "abuse.ch",
+      "vm_name": "api",
+      "agent_url": "https://mb-api.abuse.ch/api/v1/",
+      "platform": "api",
       "enabled": true,
-      "scan_timeout_seconds": 180
+      "scan_timeout_seconds": 30
     },
     {
-      "id": "avast",
-      "name": "Avast Antivirus",
-      "vendor": "Avast",
-      "vm_name": "AV-Avast",
-      "agent_url": "https://10.10.20.15:7443",
-      "platform": "windows",
+      "id": "hashlookup",
+      "name": "CIRCL Hashlookup (NSRL / MISP / abuse.ch)",
+      "vendor": "CIRCL (EU CERT)",
+      "vm_name": "api",
+      "agent_url": "https://hashlookup.circl.lu",
+      "platform": "api",
       "enabled": true,
-      "scan_timeout_seconds": 180
-    },
-    {
-      "id": "malwarebytes",
-      "name": "Malwarebytes Anti-Malware",
-      "vendor": "Malwarebytes",
-      "vm_name": "AV-Malwarebytes",
-      "agent_url": "https://10.10.20.16:7443",
-      "platform": "windows",
-      "enabled": true,
-      "scan_timeout_seconds": 240
-    },
-    {
-      "id": "sophos",
-      "name": "Sophos Intercept X",
-      "vendor": "Sophos",
-      "vm_name": "AV-Sophos",
-      "agent_url": "https://10.10.20.17:7443",
-      "platform": "windows",
-      "enabled": true,
-      "scan_timeout_seconds": 240
+      "scan_timeout_seconds": 20
     }
   ]
 }
